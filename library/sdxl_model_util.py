@@ -139,7 +139,7 @@ def load_models_from_sdxl_checkpoint(model_version, ckpt_path, map_location):
     # Load the state dict
     if model_util.is_safetensors(ckpt_path):
         checkpoint = None
-        state_dict = load_file(ckpt_path, device=map_location)
+        state_dict = load_file(ckpt_path, device='cpu')
         epoch = None
         global_step = None
     else:
@@ -166,6 +166,8 @@ def load_models_from_sdxl_checkpoint(model_version, ckpt_path, map_location):
     info = unet.load_state_dict(unet_sd)
     print("U-Net: ", info)
     del unet_sd
+
+    unet.to(map_location)
 
     # Text Encoders
     print("building text encoders")
@@ -194,6 +196,8 @@ def load_models_from_sdxl_checkpoint(model_version, ckpt_path, map_location):
     )
     text_model1 = CLIPTextModel._from_config(text_model1_cfg)
 
+    text_model1.to(map_location)
+
     # Text Encoder 2 is different from Stability AI's SDXL. SDXL uses open clip, but we use the model from HuggingFace.
     # Note: Tokenizer from HuggingFace is different from SDXL. We must use open clip's tokenizer.
     text_model2_cfg = CLIPTextConfig(
@@ -218,6 +222,8 @@ def load_models_from_sdxl_checkpoint(model_version, ckpt_path, map_location):
         # transformers_version="4.25.0.dev0",
     )
     text_model2 = CLIPTextModelWithProjection(text_model2_cfg)
+
+    text_model2.to(map_location)
 
     print("loading text encoders from checkpoint")
     te1_sd = {}
@@ -244,6 +250,8 @@ def load_models_from_sdxl_checkpoint(model_version, ckpt_path, map_location):
     converted_vae_checkpoint = model_util.convert_ldm_vae_checkpoint(state_dict, vae_config)
     info = vae.load_state_dict(converted_vae_checkpoint)
     print("VAE:", info)
+
+    vae.to(map_location)
 
     ckpt_info = (epoch, global_step) if epoch is not None else None
     return text_model1, text_model2, vae, unet, logit_scale, ckpt_info
