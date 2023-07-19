@@ -67,16 +67,18 @@ def _load_target_model(args: argparse.Namespace, model_version: str, weight_dtyp
             ckpt_info,
         ) = sdxl_model_util.load_models_from_sdxl_checkpoint(model_version, name_or_path, device)
     else:
+        # Access token is needed for sdxl-0.9-base
+        access_token = os.getenv('HUGGING_FACE_HUB_TOKEN')
         # Diffusers model is loaded to CPU
         variant = "fp16" if weight_dtype == torch.float16 else None
         print(f"load Diffusers pretrained models: {name_or_path}, variant={variant}")
         try:
             try:
-                pipe = StableDiffusionXLPipeline.from_pretrained(name_or_path, variant=variant, tokenizer=None)
+                pipe = StableDiffusionXLPipeline.from_pretrained(name_or_path, variant=variant, tokenizer=None, use_auth_token=access_token)
             except EnvironmentError as ex:
                 if variant is not None:
                     print("try to load fp32 model")
-                    pipe = StableDiffusionXLPipeline.from_pretrained(name_or_path, variant=None, tokenizer=None)
+                    pipe = StableDiffusionXLPipeline.from_pretrained(name_or_path, variant=None, tokenizer=None, use_auth_token=access_token)
                 else:
                     raise ex
         except EnvironmentError as ex:
